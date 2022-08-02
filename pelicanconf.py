@@ -9,7 +9,7 @@ TIMEZONE = 'US/Eastern'
 DEFAULT_LANG = 'en'
 
 #Path to static folders
-STATIC_PATHS = ["content/images"]
+STATIC_PATHS = ["images"]
 
 # Feed generation is usually not desired when developing
 FEED_ALL_ATOM = None
