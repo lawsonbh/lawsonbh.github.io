@@ -1,14 +1,15 @@
 Title: First Post
 Date: 2022-08-02 09:54
 Author: Bernie
-
+Category: Story
 # First of Many Posts
 
 I am incredibly excited to start posting on my new personal blog. Right now, top of mind for me are long term titles for this little corner of the internet. Current front runners are:
-- Bernies Blog
-- Awesome Blog
-- Data Doots
-- Bernies Backyard Bees
+
+-Bernies Blog
+-Awesome Blog
+-Data Doots
+-Bernies Backyard Bees
 
 I will hold off on any binding decisions for the moment. 
 
