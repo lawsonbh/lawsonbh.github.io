@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Bernies Blog</title><link href="/" rel="alternate"></link><link href="/feeds/all.atom.xml" rel="self"></link><id>/</id><updated>2022-08-02T09:54:00-04:00</updated><entry><title>First Post</title><link href="/first-post.html" rel="alternate"></link><published>2022-08-02T09:54:00-04:00</published><updated>2022-08-02T09:54:00-04:00</updated><author><name>Bernie</name></author><id>tag:None,2022-08-02:/first-post.html</id><summary type="html">&lt;h1&gt;First of Many Posts&lt;/h1&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Bernies Blog - Story</title><link href="/" rel="alternate"></link><link href="/feeds/story.atom.xml" rel="self"></link><id>/</id><updated>2022-08-02T09:54:00-04:00</updated><entry><title>First Post</title><link href="/first-post.html" rel="alternate"></link><published>2022-08-02T09:54:00-04:00</published><updated>2022-08-02T09:54:00-04:00</updated><author><name>Bernie</name></author><id>tag:None,2022-08-02:/first-post.html</id><summary type="html">&lt;h1&gt;First of Many Posts&lt;/h1&gt;
 &lt;p&gt;I am incredibly excited to start posting on my new personal blog. Right now, top of mind for me are long term titles for this little corner of the internet. Current front runners are:&lt;/p&gt;
 &lt;p&gt;-Bernies Blog
 -Awesome Blog
