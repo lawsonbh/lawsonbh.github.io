@@ -10,6 +10,7 @@ As part of reflecting on work I've done, I wanted to start by sharing how I appr
 I have a love-hate relationship with Spark. You can process incredible amounts of data with it. You can also find yourself looking at hanging tasks, crazy compute costs, and silly storage situations. 
 
 When someone called me in to help with a workload in Spark, I tried to really hone in on the following before starting any hands on coding work:
+
 1. What's the objective?
 2. What's the current baseline performance?
 3. How do we know that any changes we introduce will still produce appropriate output? IE Do we know what correct-enough looks like?
@@ -17,6 +18,7 @@ When someone called me in to help with a workload in Spark, I tried to really ho
 The majority of the situations I was brought in to help with were focused on meeting some kind of time based deadline IE we need to speed this workload up!
 
 Symptoms I looked at:
+
 - What jobs are taking the longest?
 - Within those jobs, do the stages make sense? 
 - Within a stage, how well distributed are the tasks?
