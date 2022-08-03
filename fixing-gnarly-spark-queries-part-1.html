@@ -41,15 +41,19 @@
 </footer><!-- /.post-info -->      <h1>Fixing Gnarly Spark Queries Part 1</h1>
 <p>As part of reflecting on work I've done, I wanted to start by sharing how I approach Spark Optimizations.</p>
 <p>I have a love-hate relationship with Spark. You can process incredible amounts of data with it. You can also find yourself looking at hanging tasks, crazy compute costs, and silly storage situations. </p>
-<p>When someone called me in to help with a workload in Spark, I tried to really hone in on the following before starting any hands on coding work:
-1. What's the objective?
-2. What's the current baseline performance?
-3. How do we know that any changes we introduce will still produce appropriate output? IE Do we know what correct-enough looks like?</p>
+<p>When someone called me in to help with a workload in Spark, I tried to really hone in on the following before starting any hands on coding work:</p>
+<ol>
+<li>What's the objective?</li>
+<li>What's the current baseline performance?</li>
+<li>How do we know that any changes we introduce will still produce appropriate output? IE Do we know what correct-enough looks like?</li>
+</ol>
 <p>The majority of the situations I was brought in to help with were focused on meeting some kind of time based deadline IE we need to speed this workload up!</p>
-<p>Symptoms I looked at:
-- What jobs are taking the longest?
-- Within those jobs, do the stages make sense? 
-- Within a stage, how well distributed are the tasks?</p>
+<p>Symptoms I looked at:</p>
+<ul>
+<li>What jobs are taking the longest?</li>
+<li>Within those jobs, do the stages make sense? </li>
+<li>Within a stage, how well distributed are the tasks?</li>
+</ul>
 <p>I solved the vast majority of issues just within the Spark UI. It's pretty great and I could do a whole post about it if there's interest!</p>
 <p>All of this needs to be in the context of that objective you set up front with the work plan. </p>
 <p>A good portion of the workloads I've encountered can be addressed by taking a look at how often shuffles are occurring and how often executors are staying idle. 
