@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Bernies Blog</title><link href="/" rel="alternate"></link><link href="/feeds/all.atom.xml" rel="self"></link><id>/</id><updated>2022-08-02T09:54:00-04:00</updated><entry><title>First Post</title><link href="/first-post.html" rel="alternate"></link><published>2022-08-02T09:54:00-04:00</published><updated>2022-08-02T09:54:00-04:00</updated><author><name>Bernie</name></author><id>tag:None,2022-08-02:/first-post.html</id><summary type="html">&lt;h1&gt;First of Many Posts&lt;/h1&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Bernies Blog</title><link href="/" rel="alternate"></link><link href="/feeds/all.atom.xml" rel="self"></link><id>/</id><updated>2022-08-02T20:34:00-04:00</updated><entry><title>Fixing Gnarly Spark Queries Part 1</title><link href="/fixing-gnarly-spark-queries-part-1.html" rel="alternate"></link><published>2022-08-02T20:34:00-04:00</published><updated>2022-08-02T20:34:00-04:00</updated><author><name>Bernie</name></author><id>tag:None,2022-08-02:/fixing-gnarly-spark-queries-part-1.html</id><summary type="html">&lt;h1&gt;Fixing Gnarly Spark Queries Part 1&lt;/h1&gt;
+&lt;p&gt;As part of reflecting on work I've done, I wanted to start by sharing how I approach Spark Optimizations.&lt;/p&gt;
+&lt;p&gt;I have a love-hate relationship with Spark. You can process incredible amounts of data with it. You can also find yourself looking at hanging tasks …&lt;/p&gt;</summary><content type="html">&lt;h1&gt;Fixing Gnarly Spark Queries Part 1&lt;/h1&gt;
+&lt;p&gt;As part of reflecting on work I've done, I wanted to start by sharing how I approach Spark Optimizations.&lt;/p&gt;
+&lt;p&gt;I have a love-hate relationship with Spark. You can process incredible amounts of data with it. You can also find yourself looking at hanging tasks, crazy compute costs, and silly storage situations. &lt;/p&gt;
+&lt;p&gt;When someone called me in to help with a workload in Spark, I tried to really hone in on the following before starting any hands on coding work:
+1. What's the objective?
+2. What's the current baseline performance?
+3. How do we know that any changes we introduce will still produce appropriate output? IE Do we know what correct-enough looks like?&lt;/p&gt;
+&lt;p&gt;The majority of the situations I was brought in to help with were focused on meeting some kind of time based deadline IE we need to speed this workload up!&lt;/p&gt;
+&lt;p&gt;Symptoms I looked at:
+- What jobs are taking the longest?
+- Within those jobs, do the stages make sense? 
+- Within a stage, how well distributed are the tasks?&lt;/p&gt;
+&lt;p&gt;I solved the vast majority of issues just within the Spark UI. It's pretty great and I could do a whole post about it if there's interest!&lt;/p&gt;
+&lt;p&gt;All of this needs to be in the context of that objective you set up front with the work plan. &lt;/p&gt;
+&lt;p&gt;A good portion of the workloads I've encountered can be addressed by taking a look at how often shuffles are occurring and how often executors are staying idle. 
+If you are interested in a deep dive into any of these topics let me know!&lt;/p&gt;</content><category term="How Things Work"></category></entry><entry><title>First Post</title><link href="/first-post.html" rel="alternate"></link><published>2022-08-02T09:54:00-04:00</published><updated>2022-08-02T09:54:00-04:00</updated><author><name>Bernie</name></author><id>tag:None,2022-08-02:/first-post.html</id><summary type="html">&lt;h1&gt;First of Many Posts&lt;/h1&gt;
 &lt;p&gt;I am incredibly excited to start posting on my new personal blog. Right now, top of mind for me are long term titles for this little corner of the internet. Current front runners are:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Bernies Blog&lt;/li&gt;
