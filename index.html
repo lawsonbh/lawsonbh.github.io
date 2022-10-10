@@ -13,57 +13,13 @@
                 <h1><a href="/">Bernies Blog</a></h1>
                 <nav><ul>
                     <li><a href="/pages/about.html">About</a></li>
-                    <li><a href="/category/how-things-work.html">How Things Work</a></li>
                     <li><a href="/category/story.html">Story</a></li>
                 </ul></nav>
         </header><!-- /#banner -->
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/fixing-gnarly-spark-queries-part-1.html">Fixing Gnarly Spark Queries Part 1</a></h1>
-<footer class="post-info">
-        <abbr class="published" title="2022-08-02T20:34:00-04:00">
-                Published: Tue 02 August 2022
-        </abbr>
-
-        <address class="vcard author">
-                By                         <a class="url fn" href="/author/bernie.html">Bernie</a>
-        </address>
-<p>In <a href="/category/how-things-work.html">How Things Work</a>.</p>
-
-</footer><!-- /.post-info --><h1>Fixing Gnarly Spark Queries Part 1</h1>
-<p>As part of reflecting on work I've done, I wanted to start by sharing how I approach Spark Optimizations.</p>
-<p>I have a love-hate relationship with Spark. You can process incredible amounts of data with it. You can also find yourself looking at hanging tasks, crazy compute costs, and silly storage situations. </p>
-<p>When someone called me in to help with a workload in Spark, I tried to really hone in on the following before starting any hands on coding work:</p>
-<ol>
-<li>What's the objective?</li>
-<li>What's the current baseline performance?</li>
-<li>How do we know that any changes we introduce will still produce appropriate output? IE Do we know what correct-enough looks like?</li>
-</ol>
-<p>The majority of the situations I was brought in to help with were focused on meeting some kind of time based deadline IE we need to speed this workload up!</p>
-<p>Symptoms I looked at:</p>
-<ul>
-<li>What jobs are taking the longest?</li>
-<li>Within those jobs, do the stages make sense? </li>
-<li>Within a stage, how well distributed are the tasks?</li>
-</ul>
-<p>I solved the vast majority of issues just within the Spark UI. It's pretty great and I could do a whole post about it if there's interest!</p>
-<p>All of this needs to be in the context of that objective you set up front with the work plan. </p>
-<p>A good portion of the workloads I've encountered can be addressed by taking a look at how often shuffles are occurring and how often executors are staying idle. 
-If you are interested in a deep dive into any of these topics let me know!</p>                </article>
-            </aside><!-- /#featured -->
-                <section id="content" class="body">
-                    <h1>Other articles</h1>
-                    <hr />
-                    <ol id="posts-list" class="hfeed">
-
-            <li><article class="hentry">
-                <header>
-                    <h1><a href="/first-post.html" rel="bookmark"
-                           title="Permalink to First Post">First Post</a></h1>
-                </header>
-
-                <div class="entry-content">
+                    <h1 class="entry-title"><a href="/first-post.html">First Post</a></h1>
 <footer class="post-info">
         <abbr class="published" title="2022-08-02T09:54:00-04:00">
                 Published: Tue 02 August 2022
@@ -74,7 +30,7 @@ If you are interested in a deep dive into any of these topics let me know!</p>  
         </address>
 <p>In <a href="/category/story.html">Story</a>.</p>
 
-</footer><!-- /.post-info -->                <h1>First of Many Posts</h1>
+</footer><!-- /.post-info --><h1>First of Many Posts</h1>
 <p>I am incredibly excited to start posting on my new personal blog. Right now, top of mind for me are long term titles for this little corner of the internet. Current front runners are:</p>
 <ul>
 <li>Bernies Blog</li>
@@ -82,12 +38,9 @@ If you are interested in a deep dive into any of these topics let me know!</p>  
 <li>Data Doots</li>
 <li>Bernies Backyard Bees</li>
 </ul>
-<p>I will hold …</p>
-                <a class="readmore" href="/first-post.html">read more</a>
-                </div><!-- /.entry-content -->
-            </article></li>
-                </ol><!-- /#posts-list -->
-                </section><!-- /#content -->
+<p>I will hold off on any binding decisions for the moment. </p>
+<p>Moving forward, I will mostly use this space to reflect on things I am learning with technology. I hope readers are also ready for the occasional post about my garden, Star Wars, and the wider world.</p>                </article>
+            </aside><!-- /#featured -->
         <section id="extras" class="body">
                 <div class="blogroll">
                         <h2>links</h2>
