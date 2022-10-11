@@ -13,13 +13,267 @@
                 <h1><a href="/">Bernies Blog</a></h1>
                 <nav><ul>
                     <li><a href="/pages/about.html">About</a></li>
+                    <li><a href="/category/how-to.html">How-To</a></li>
                     <li><a href="/category/story.html">Story</a></li>
                 </ul></nav>
         </header><!-- /#banner -->
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/first-post.html">First Post</a></h1>
+                    <h1 class="entry-title"><a href="/load-local-files-into-snowflake-with-python.html">Load Local Files into Snowflake with Python</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2022-10-10T08:14:00-04:00">
+                Published: Mon 10 October 2022
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/bernie.html">Bernie</a>
+        </address>
+<p>In <a href="/category/how-to.html">How-To</a>.</p>
+
+</footer><!-- /.post-info --><h1>Audience</h1>
+<p>You're going to love this article if you want to know more about:</p>
+<ul>
+<li>Snowflake Connector for Python (snowflake-connector-python)</li>
+<li>Storing configuration in the environment (python-decouple)</li>
+<li>Peeking at big files without totally opening them on your workstation (csv)</li>
+<li>Automating the boring stuff</li>
+</ul>
+<p>Alternatively, you're going to love this article if you like providing feedback on any of the above!</p>
+<p>If you want to follow along, then . . .</p>
+<ul>
+<li>. . . you should have a Snowflake workspace and understand the method you usually use to log into it. </li>
+<li>. . . you should have git installed on your system.</li>
+<li>. . . have Python 3.9+. I used 3.10 on my personal workstation with my personal snowflake setup and 3.9 at my work. </li>
+</ul>
+<p>If you want to skip to the end, then skip down to "Step 5: Tying it all together".</p>
+<h1>Situation</h1>
+<p>I indirectly support five other engineers, a scrappy analyst, and a data scientist. All of them are trying to do the best they can within the constraints of our system / network connectivity. We work with third party organizations, on-prem systems, and a pretty dandy cloud data warehouse with accompanying AWS infrastructure on our end.</p>
+<h1>Problem</h1>
+<p>I've encountered large (1 gb + uncompressed) files that need to be ingested from someone's workstation or a shared network file system. These types of adhoc movements are a minority of the requests but generate a large amount of pain for the team. </p>
+<p>There are quite a few of these floating around and while any individual file isn't necessarily re-occurring, the workflow is. Moreover, users sometimes have to load a dozen of these kinds of files sequentially because of the gui based tools on their workstation - leading to a large time sink of having to watch a query while sipping on coffee.</p>
+<p>The goal of the user is to try and get the file to a sandbox area in one of our snowflake warehouses. </p>
+<h1>Solution</h1>
+<p>I wrote a python script to provide more automation with the potential for parallelization. I am setting up the script (WIP and feedback welcome!) to make it as easy as possible for users to re-use the functionality while keeping configuration strictly separate from the code. I wanted to enable users to do basic loads into the sandbox and take away the pain of hand coding DDLs when some of the files had hundreds of columns.</p>
+<h1>Approach</h1>
+<h2>Step 1: Set up a local environment</h2>
+<p>Create a folder for your local data movement work and set up a virtual environment. When I wrote this, I worked on Ubuntu linux 22.04.01 LTS on my personal workstation and Ubuntu in Windows Subsytem for Linux (Ubuntu 22.04.01 LTS) at work, so the way you navigate system directories and manage your python environment may look a bit different if you are using a different flavor of operating system. I recommend <a href="https://docs.python.org/3/tutorial/venv.html">the official docs on venv</a> for learning more. </p>
+<div class="highlight"><pre><span></span><code>mkdir data-yeet
+<span class="nb">cd</span> ./data-yeet
+git init
+python3 -m venv venv
+<span class="nb">source</span> venv/bin/activate
+</code></pre></div>
+
+<p>Now that you are in your virtual environment, go ahead and pip install the following:</p>
+<div class="highlight"><pre><span></span><code>pip install --upgrade pip
+pip install python-decouple snowflake-connector-python 
+</code></pre></div>
+
+<p>Begin strictly separating your configuration from your code by setting up your .env file. You can follow this template for a file named .env in ./data-yeet:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">SNOWFLAKE_USER_NAME</span><span class="o">=</span>
+<span class="nv">SNOWFLAKE_ACCOUNT</span><span class="o">=</span>
+<span class="nv">SNOWFLAKE_AUTHENTICATOR</span><span class="o">=</span>
+<span class="nv">SNOWFLAKE_ROLE</span><span class="o">=</span>
+<span class="nv">SNOWFLAKE_WAREHOUSE</span><span class="o">=</span>
+<span class="nv">SNOWFLAKE_DB</span><span class="o">=</span>
+<span class="nv">SNOWFLAKE_SCHEMA</span><span class="o">=</span>
+<span class="nv">LOCAL_FILE_PATH</span><span class="o">=</span>
+<span class="nv">LOCAL_FILE_NAME</span><span class="o">=</span>
+<span class="nv">TARGET_TABLE_NAME</span><span class="o">=</span>
+<span class="nv">TRUNCATE</span><span class="o">=</span>
+<span class="nv">CREATE</span><span class="o">=</span>
+</code></pre></div>
+
+<p>Fill in the appropriate values for your snowflake workspace. For this type of workflow and given my company's SSO implementation, it made sense for set SNOWFLAKE_AUTHENTICATOR to externalbrowser. If you are running something with a personal setup, then adding in a field and value for SNOWFLAKE_PASSWORD instead may make sense. </p>
+<p>One of the things I love about the <a href="https://pypi.org/project/python-decouple/">Decouple package</a> is because unlike using <code>os.environ</code> you can work with things other than strings, work with .ini OR .env files, and get really smooth, readable code that doesn't look like you had to implement workarounds. I really love it and kind of have a code-crush on it. </p>
+<h2>Step 2: Set up your SnowflakeConnection</h2>
+<p>In a file you create within ./data-yeet named <code>load_local_csvs_into_snowflake.py</code>, start with the following:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">decouple</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">import</span> <span class="nn">snowflake.connector</span>
+
+<span class="n">snowflake_context</span> <span class="o">=</span> <span class="n">snowflake</span><span class="o">.</span><span class="n">connector</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+    <span class="n">user</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_USER_NAME&quot;</span><span class="p">),</span>
+    <span class="n">account</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_ACCOUNT&quot;</span><span class="p">),</span>
+    <span class="n">authenticator</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_AUTHENTICATOR&quot;</span><span class="p">,</span><span class="s2">&quot;externalbrowser&quot;</span><span class="p">),</span> <span class="c1"># You may choose instead to do a SNOWFLAKE_PASSWORD setting instead</span>
+<span class="p">)</span>
+
+<span class="n">snowflake_cursor</span> <span class="o">=</span> <span class="n">snowflake_context</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">snowflake_cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT current_version()&quot;</span><span class="p">)</span>
+    <span class="n">one_row</span> <span class="o">=</span> <span class="n">snowflake_cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">one_row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="k">finally</span><span class="p">:</span>
+    <span class="n">snowflake_cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">snowflake_context</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</code></pre></div>
+
+<p>Execute the above program with something like <code>python load_local_csvs_into_snowflake.py</code> and you should receive a single line of output to the terminal. Something like: <code>6.0.0</code>. The above example to test your connection was inspired by the <a href="https://docs.snowflake.com/en/user-guide/python-connector-install.html#step-2-verify-your-installation">excellent documentation</a> by Snowflake themselves.</p>
+<h2>Step 3: Write code to get the header row from a CSV</h2>
+<p>Ok - so the files I've been seeing the users struggle with are larger ones either by the file size or because of the number of columns. One of the things I wanted to unburden the users from was manually writing DDL statements with hundreds of columns or having an underpowered workstation freeze from trying to open an entire large file. </p>
+<p>The following code meets those needs quite nicely without too many additional dependencies. Let's take a look:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">##TODO: Use pathlib here</span>
+<span class="n">full_path_and_file</span> <span class="o">=</span> <span class="n">config</span><span class="p">(</span><span class="s2">&quot;LOCAL_FILE_PATH&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">config</span><span class="p">(</span><span class="s2">&quot;LOCAL_FILE_NAME&quot;</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">full_path_and_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+    <span class="n">header_row</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span>
+</code></pre></div>
+
+<p>We are using the csv module from the standard library to do the bulk of the work. First I hack together the full path and file name the csv module needs. In the future, we should definitely use pathlib to do this or just have a list of full paths supplied in the config. Once we supply the full path and file name in our <code>with open()</code> we can use the <a href="https://docs.python.org/3/reference/expressions.html#generator.__next__">generator.<strong>next</strong>() method</a> on reader to only look at the first row of data without accessing the rest of the file. The row is stored in the reference <code>header_row</code> and allows us to iterate on its elements in other parts of our script. This does assume that the first row in the file of the csv is a header row, which is a disadvantage of this approach.</p>
+<p>I liked this approach even though I consider myself a Pandas warrior. In Pandas, you could use the read_csv() method, but the reading of the file into the dataframe format, the additional parameters and code required to prevent a full read, and then the need to translate that back into a data type to supply for a sql DDL seemed overly excessive. </p>
+<h2>Step 4: Parameterized Create Table Statement</h2>
+<p>In a future post, I want to talk about doing this same thing but with <a href="https://pypi.org/project/Jinja2/">Jinja templating</a>. It feels like that should be the more appropriate tool for this use case, but I am not as comfortable implementing that in this kind of ad hoc workflow although I look forward to leveling up those Jinja skills in the future. Until then, the following works:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">assemble_create_table_stmt</span><span class="p">(</span>
+    <span class="n">list_of_cols</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">target_table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">database</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Broke out the logic for assembling the SQL statement to create tables that don&#39;t exist</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">##TODO: This feels like something we should do with jinja</span>
+    <span class="n">create_tbl_statement</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    CREATE OR REPLACE TABLE </span><span class="si">{</span><span class="n">database</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">target_table_name</span><span class="si">}</span><span class="s2"> (</span><span class="se">\n</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="c1">##TODO: Figure out data types in a better way</span>
+    <span class="k">for</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">list_of_cols</span><span class="p">:</span>
+        <span class="n">create_tbl_statement</span> <span class="o">=</span> <span class="n">create_tbl_statement</span> <span class="o">+</span> <span class="n">column_name</span> <span class="o">+</span> <span class="s2">&quot; varchar(16777216)&quot;</span>
+        <span class="k">if</span> <span class="n">column_name</span> <span class="o">!=</span> <span class="n">list_of_cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">create_tbl_statement</span> <span class="o">=</span> <span class="n">create_tbl_statement</span> <span class="o">+</span> <span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">create_tbl_statement</span> <span class="o">=</span> <span class="n">create_tbl_statement</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+    <span class="k">return</span> <span class="n">create_tbl_statement</span>
+</code></pre></div>
+
+<p>In the above code, a couple of things are happening.</p>
+<ol>
+<li>The Create Table sql has its database, schema, and target_table_name values parameterized base on the configuation you supply in your .env file. </li>
+<li>The header_row from our csv parsing code can be fed directly as an input into the <code>list_of_cols</code> argument, which then allows us to iterate through the elements of header_row and incrementally build out the rest of our sql statement as long as it isn't the last element as evaluated by <code>if column_name != list_of_cols[-1]:</code></li>
+<li>Once we arrive at the last element, we close our sql statement with the correct syntax - E.G. close parentheses instead of comma.</li>
+<li>We then can return the sql statement string to whereever it's been called from.</li>
+</ol>
+<p>Here's what I haven't figured out yet - data types in this thing. Right now if I let this script run loose through our teams, we are going to end up with some big tables in our sandbox. Ideally, I'll add in additional logic and configuration to allow a user to specify types if needed or to look at a second, third, or fourth row from the csv and infer types. I wanted to be mindful of the wide files with many columns and any iteration on this function I create I will keep those wide files with hundreds of fields top of mind.</p>
+<h2>Step 5: Tying it all together</h2>
+<p>To tie the entire script together, I use the Snowflake cursor to execute the create table statement from the <code>assemble_create_table_stmt</code> function, a parameterized <a href="https://docs.snowflake.com/en/sql-reference/sql/put.html">put command</a>, and a parameterized <a href="https://docs.snowflake.com/en/sql-reference/sql/copy-into-table.html">copy command</a>. I also allow the user to supply a True False bool to optionally truncate a table in the sandbox in case they need to reload data for whatever reason. I do require that the user intentionally set the bool value for create to True. I want to make sure they are modifying that config file. </p>
+<p>If the script is executed as <code>python load_local_csvs_into_snowflake.py</code>, then the <code>if __name__=="__main__":</code> block will take care of setting up the SnowflakeConnection from the config and executing the upload_csv_to_snowflake function with the appropriate parameterized inputs. Otherwise, these functions can be imported into another script created by the user to accelerate their work. Future work I do, I'd like to have one of the configs be dictionary that connects local files to load with their file paths. </p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">from</span> <span class="nn">decouple</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">import</span> <span class="nn">snowflake.connector</span>
+<span class="kn">from</span> <span class="nn">snowflake.connector.connection</span> <span class="kn">import</span> <span class="n">SnowflakeConnection</span>
+<span class="kn">from</span> <span class="nn">snowflake.connector</span> <span class="kn">import</span> <span class="n">cursor</span>
+
+
+<span class="k">def</span> <span class="nf">assemble_create_table_stmt</span><span class="p">(</span>
+    <span class="n">list_of_cols</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">target_table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">database</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Broke out the logic for assembling the SQL statement to create tables that don&#39;t exist</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">##TODO: This feels like something we should do with jinja</span>
+    <span class="c1">##TODO: Figure out feeding in database, schema</span>
+    <span class="n">create_tbl_statement</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    CREATE OR REPLACE TABLE </span><span class="si">{</span><span class="n">database</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">target_table_name</span><span class="si">}</span><span class="s2"> (</span><span class="se">\n</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="c1">##TODO: Figure out data types in a better way</span>
+    <span class="k">for</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">list_of_cols</span><span class="p">:</span>
+        <span class="n">create_tbl_statement</span> <span class="o">=</span> <span class="n">create_tbl_statement</span> <span class="o">+</span> <span class="n">column_name</span> <span class="o">+</span> <span class="s2">&quot; varchar(16777216)&quot;</span>
+        <span class="k">if</span> <span class="n">column_name</span> <span class="o">!=</span> <span class="n">list_of_cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">create_tbl_statement</span> <span class="o">=</span> <span class="n">create_tbl_statement</span> <span class="o">+</span> <span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">create_tbl_statement</span> <span class="o">=</span> <span class="n">create_tbl_statement</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+    <span class="k">return</span> <span class="n">create_tbl_statement</span>
+
+
+<span class="k">def</span> <span class="nf">upload_csv_to_snowflake</span><span class="p">(</span>
+    <span class="n">snowflake_context</span><span class="p">:</span> <span class="n">SnowflakeConnection</span><span class="p">,</span>
+    <span class="n">local_file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">target_table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">local_file_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">truncate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Take a snowflake context, a local csv file name, a file path to the csv</span>
+<span class="sd">    and the name of the table you want to create or modify in snowflake</span>
+<span class="sd">    Load that file at that path into snowflake</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cs</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+    <span class="c1">##TODO: Use pathlib here</span>
+    <span class="n">full_path_and_file</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">local_file_path</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">local_file_name</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">truncate</span><span class="p">:</span>
+            <span class="n">cs</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;truncate table </span><span class="si">{</span><span class="n">target_table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>     
+        <span class="k">if</span> <span class="n">create</span><span class="p">:</span>
+            <span class="c1"># If creating a new table, we can pull the field names from the</span>
+            <span class="c1"># first row of the csv</span>
+            <span class="c1"># If the csv doesn&#39;t have a header row it probably shouldn&#39;t be</span>
+            <span class="c1"># loaded using this script or you would be loading to a table that</span>
+            <span class="c1"># already exists</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">full_path_and_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+                <span class="n">header_row</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span>
+            <span class="n">create_table_stmt</span> <span class="o">=</span> <span class="n">assemble_create_table_stmt</span><span class="p">(</span>
+                <span class="n">list_of_cols</span><span class="o">=</span><span class="n">header_row</span><span class="p">,</span> <span class="n">target_table_name</span><span class="o">=</span><span class="n">target_table_name</span>
+            <span class="p">)</span>
+            <span class="n">cs</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">create_table_stmt</span><span class="p">)</span>
+        <span class="n">cs</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;put file://</span><span class="si">{</span><span class="n">full_path_and_file</span><span class="si">}</span><span class="s2">* @%</span><span class="si">{</span><span class="n">target_table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">cs</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;copy into </span><span class="si">{</span><span class="n">target_table_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">cs</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">snowflake</span><span class="o">.</span><span class="n">connector</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+        <span class="n">user</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_USER_NAME&quot;</span><span class="p">),</span>
+        <span class="n">account</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_ACCOUNT&quot;</span><span class="p">),</span>
+        <span class="n">authenticator</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_AUTHENTICATOR&quot;</span><span class="p">,</span> <span class="s2">&quot;externalbrowser&quot;</span><span class="p">),</span> <span class="c1">#default to externalbrowser if no config value</span>
+        <span class="n">role</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_ROLE&quot;</span><span class="p">),</span>
+        <span class="n">warehouse</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_WAREHOUSE&quot;</span><span class="p">),</span>
+        <span class="n">database</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_DB&quot;</span><span class="p">),</span>
+        <span class="n">schema</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;SNOWFLAKE_SCHEMA&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="c1">## TODO: Take a list of local files to load</span>
+    <span class="c1">## TODO: Take a list of target table names</span>
+    <span class="c1">## TODO: Implement as dict operation</span>
+    <span class="n">upload_csv_to_snowflake</span><span class="p">(</span>
+        <span class="n">snowflake_context</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+        <span class="n">local_file_name</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;LOCAL_FILE_TO_LOAD&quot;</span><span class="p">),</span>
+        <span class="n">target_table_name</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;TARGET_TABLE_NAME&quot;</span><span class="p">),</span>
+        <span class="n">local_file_path</span><span class="o">=</span><span class="n">config</span><span class="p">(</span><span class="s2">&quot;PATH_TO_LOCAL_FILE&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="c1">#defaults to blank if no config value</span>
+        <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</code></pre></div>
+
+<h1>Future Steps</h1>
+<ol>
+<li>Work on condensing my blog posts - please let me know what is / is not clear : )</li>
+<li>Use pathlib instead of hacking together file paths and names - will make it more portable across OS as well</li>
+<li>Evaluate and implement better ways to supply / infer data types for the create table statement</li>
+<li>Understand if Jinja will make building the DDL easier or harder for this workflow</li>
+<li>Evaluate file compression and Snowflake stages before load into warehouse</li>
+</ol>
+<h1>Thank you!</h1>
+<p>I really value that you read through to end. Again, please shoot me a note if you found this helpful and any suggestions you might have.</p>                </article>
+            </aside><!-- /#featured -->
+                <section id="content" class="body">
+                    <h1>Other articles</h1>
+                    <hr />
+                    <ol id="posts-list" class="hfeed">
+
+            <li><article class="hentry">
+                <header>
+                    <h1><a href="/first-post.html" rel="bookmark"
+                           title="Permalink to First Post">First Post</a></h1>
+                </header>
+
+                <div class="entry-content">
 <footer class="post-info">
         <abbr class="published" title="2022-08-02T09:54:00-04:00">
                 Published: Tue 02 August 2022
@@ -30,7 +284,7 @@
         </address>
 <p>In <a href="/category/story.html">Story</a>.</p>
 
-</footer><!-- /.post-info --><h1>First of Many Posts</h1>
+</footer><!-- /.post-info -->                <h1>First of Many Posts</h1>
 <p>I am incredibly excited to start posting on my new personal blog. Right now, top of mind for me are long term titles for this little corner of the internet. Current front runners are:</p>
 <ul>
 <li>Bernies Blog</li>
@@ -38,9 +292,12 @@
 <li>Data Doots</li>
 <li>Bernies Backyard Bees</li>
 </ul>
-<p>I will hold off on any binding decisions for the moment. </p>
-<p>Moving forward, I will mostly use this space to reflect on things I am learning with technology. I hope readers are also ready for the occasional post about my garden, Star Wars, and the wider world.</p>                </article>
-            </aside><!-- /#featured -->
+<p>I will hold …</p>
+                <a class="readmore" href="/first-post.html">read more</a>
+                </div><!-- /.entry-content -->
+            </article></li>
+                </ol><!-- /#posts-list -->
+                </section><!-- /#content -->
         <section id="extras" class="body">
                 <div class="blogroll">
                         <h2>links</h2>
